@@ -37,25 +37,26 @@ int main()
 
     printf("waiting for connect.....\n");
 
-    addr_len = sizeof(client_addr);
-    cfd = accept(sfd, (struct sockaddr *)&client_addr, &addr_len);
-
-    if(cfd == -1) {
-        perr_exit("accept error");
-    }
-
-    char buf[256];
-    printf("client ip: %s, %d\n", 
-            inet_ntop(AF_INET, &client_addr.sin_addr.s_addr, buf, sizeof(buf)),
-            ntohs(client_addr.sin_port));
-
     while(1) {
+        addr_len = sizeof(client_addr);
+        cfd = accept(sfd, (struct sockaddr *)&client_addr, &addr_len);
+
+        if(cfd == -1) {
+            perr_exit("accept error");
+        }
+
+        char buf[256];
+        printf("client ip: %s, %d\n", 
+                inet_ntop(AF_INET, &client_addr.sin_addr.s_addr, buf, sizeof(buf)),
+                ntohs(client_addr.sin_port));
+
+
         len = read(cfd, buf , sizeof(buf));
         if(len == -1) {
             perr_exit("read error");
         }
 
-        if( write(STDOUT_FILENO, buf , len) < 0) {
+        if(write(STDOUT_FILENO, buf , len) < 0) {
             perr_exit("write error");
         }
         for(i = 0; i < len; i++ ) {
@@ -65,6 +66,7 @@ int main()
             perr_exit("write error");
         }
     }
+    printf("服务器关闭\n");
 
     close(sfd);
     close(cfd);
