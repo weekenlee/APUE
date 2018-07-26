@@ -23,7 +23,7 @@ int main(void)
     }
     //现在offset是10
     
-    if(lseek(fd, 16394, SEEK_SET) == -1) {
+    if(lseek(fd, 16384, SEEK_SET) == -1) {
         printf("lseek error"); 
     }
     //现在offset是16384
