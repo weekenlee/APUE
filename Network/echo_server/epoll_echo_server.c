@@ -95,4 +95,109 @@ int main(int argc, char **argv)
         perror("listen");
         abort();
     }
+
+    efd = epoll_create1(0);
+    if(efd == -1) {
+        perror("epoll_create");
+        abort();
+    }
+
+    event.data.fd = sfd;
+    event.events =  EPOLLIN|EPOLLET;
+    s = epoll_ctl(efd, EPOLL_CTL_ADD, sfd, &event);
+    if(s == -1) {
+        perror("epoll_ctl");
+        abort();
+    }
+
+    evnets = calloc(MAXEVENTS, sizeof event);
+
+    while(1) {
+        int n, i;
+        n = epoll_wait(efd, events, MAXEVENTS, -1);
+        for(i = 0; i < n; i++) {
+            if((events[i].events & EPOLLERR) ||
+                    (events[i].events & EPOLLHUP) ||
+                    (!(evnents[i].evnets &EPOLLIN))) {
+                        fprintf(stderr, "epoll error\n");
+                        close(events[i].data.fd);
+                        continue;
+            } else if(sfd == events[i].data.fd) {
+                while(1) {
+                    struct sockaddr in_addr;
+                    socklen_t in_len;
+                    int infd;
+                    char hbuf[NI_MAXHOST], sbuf[NI_MAXSERV];
+
+
+                    in_len = sizeof in_addr;
+                    infd = accept(sfd, &in_addr, &in_len);
+                    if(infd == -1) {
+                        if((errno == EAGAIN) ||
+                                (errno == EWOULDBLOCK)) {
+                            break;
+                        }else {
+                            perror("accept");
+                            break;
+                        }
+                    }
+
+                    s = getnameinfo(&in_addr, in_len,
+                            hbuf, sizeof hbuf,
+                            sbuf, sizeof sbuf,
+                            NI_NUMERICHOST | NI_NUMERICSERV);
+
+                    if(s == 0) {
+                        printf("Accepted connection on descriptor %d (host=%s, port = %s)", infd, hbuf, sbuf);
+                    }
+
+                    s = make_socket_non_blocking(infd);
+                    if (s == -1) {
+                        abort();
+                    }
+
+                    event.data.fd = infd;
+                    event.events = EPOLLIN | EPOLLET;
+                    s = epoll_ctl(efd, EPOLL_CTL_ADD, infd, &event);
+                    if(s == -1) {
+                        perror("epoll_ctl");
+                        abort();
+                    }
+                }
+                continue;
+            } else {
+                int done = 0;
+                while(1) {
+                    ssize_t count;
+                    char buf[512];
+                    count = read(events[i].data.fd, buf, sizeof buf);
+                    if(count == -1) {
+                        if (errno != EAGAIN) {
+                            perror("read");
+                            done = 1;
+                        }
+                        break;
+                    }else if(count == 0) {
+                        done = 1;
+                        break;
+                    }
+
+                    s = write(1, buf, count);
+
+                    if(s == -1) {
+                        perror("write");
+                        abort();
+                    }
+                }
+                if (done) {
+                    printf("closed connection on descriptor %d", events[i].data.fd);
+                    close(events[i].data.fd);
+                }
+            }
+        }
+    }
+
+    free(events);
+    close(sfd);
+    return EXIT_SUCCESS;
 }
