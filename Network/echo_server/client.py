@@ -1,7 +1,7 @@
 from socket import *
 
 HOST = '127.0.0.1'
-PORT = 8000
+PORT = 8080
 
 bufsize = 1024
 ADDR = (HOST, PORT)
