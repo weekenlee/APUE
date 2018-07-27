@@ -87,7 +87,7 @@ int main(int argc, char **argv)
 
     s = make_socket_non_blocking(sfd);
     if(s == -1) {
-        abord();
+        abort();
     }
     s = listen(sfd, SOMAXCONN);
 
@@ -95,6 +95,7 @@ int main(int argc, char **argv)
         perror("listen");
         abort();
     }
+    printf("start server, listen on %s\n", argv[1]);
 
     efd = epoll_create1(0);
     if(efd == -1) {
@@ -110,20 +111,21 @@ int main(int argc, char **argv)
         abort();
     }
 
-    evnets = calloc(MAXEVENTS, sizeof event);
+    events = calloc(MAXEVENTS, sizeof event);
 
+    printf("begin epoll wait...\n");
     while(1) {
         int n, i;
         n = epoll_wait(efd, events, MAXEVENTS, -1);
+        printf("event come...");
         for(i = 0; i < n; i++) {
             if((events[i].events & EPOLLERR) ||
                     (events[i].events & EPOLLHUP) ||
-                    (!(evnents[i].evnets &EPOLLIN))) {
+                    (!(events[i].events &EPOLLIN))) {
                         fprintf(stderr, "epoll error\n");
                         close(events[i].data.fd);
                         continue;
             } else if(sfd == events[i].data.fd) {
-                while(1) {
                     struct sockaddr in_addr;
                     socklen_t in_len;
                     int infd;
@@ -163,8 +165,6 @@ int main(int argc, char **argv)
                         perror("epoll_ctl");
                         abort();
                     }
-                }
-                continue;
             } else {
                 int done = 0;
                 while(1) {
